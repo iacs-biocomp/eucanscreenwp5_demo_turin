@@ -1,0 +1,43 @@
+name: Publish Docker image
+
+on:
+  release:
+    types: [published]  
+
+jobs:
+  push_to_registry:
+    name: Push Docker image to Docker Hub
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }} 
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: iacsbiocomputing/eucanscreenwp5_demo_turin
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            latest
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile  
+          push: true
+          tags: |
+            iacsbiocomputing/eucanscreenwp5_demo_turin:${{ steps.meta.outputs.version }}
+            iacsbiocomputing/eucanscreenwp5_demo_turin:latest
+          labels: ${{ steps.meta.outputs.labels }}
+
